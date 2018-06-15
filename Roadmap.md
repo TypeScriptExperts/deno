@@ -73,15 +73,57 @@ which can then add this functionality.t
 
 Deno does not aim to be API compatible with Node in any respect. Deno will
 export a single flat namespace "deno" under which all core functions are
-defined.  We leave it up to users to wrap deno's namespace to provide some
+defined.  We leave it up to users to wrap Deno's namespace to provide some
 compatibility with Node.
 
 *Top-level await*: This will be put off until at least deno2 Milestone1 is
 complete. One of the major problems is that top-level await calls are not
 syntactically valid TypeScript.
 
-```
+Functions exported under Deno namespace:
+```ts
 deno.readFileSync(filename: string): ArrayBuffer;
+deno.writeFileSync(filename: string, data: Uint8Array, perm: number): void;
 ```
 
+Timers:
+```ts
+setTimeout(cb: TimerCallback, delay: number, ...args: any[]): number;
+setInterval(cb: TimerCallbac, duration: number, ...args: any[]): number;
+clearTimeout(timerId: number);
+clearInterval(timerId: number);
+```
 
+Console:
+```ts
+declare var console: {
+  log(...args: any[]): void;
+  error(...args: any[]): void;
+  assert(assertion: boolean, ...msg: any[]): void;
+}
+```
+
+URL:
+```ts
+URL(url: string, base?: string): URL;
+```
+
+Text encoding:
+```ts
+declare var TextEncoder: {
+  new (utfLabel?: string, options?: TextEncoderOptions): TextEncoder;
+  (utfLabel?: string, options?: TextEncoderOptions): TextEncoder;
+  encoding: string;
+};
+
+declare var TextDecoder: {
+  new (label?: string, options?: TextDecoderOptions): TextDecoder;
+  (label?: string, options?: TextDecoderOptions): TextDecoder;
+  encoding: string;
+};
+```
+
+Fetch API:
+```ts
+fetch(input?: Request | string, init?: RequestInit): Promise<Response>;
+```
