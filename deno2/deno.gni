@@ -58,3 +58,78 @@ template("create_snapshot") {
     ]
   }
 }
+
+template("rust_crate") {
+  crate_type = invoker.crate_type
+  out_dir = target_out_dir
+  source_root = invoker.source_root
+  if (crate_type == "bin") {
+    output = "$target_out_dir/$target_name"
+    out_dir = root_out_dir
+  } else if (crate_type == "lib") {
+    output = "$target_out_dir/lib$target_name.rlib"
+  } else {
+    assert(false, "Unsupported crate_type")
+  }
+  action(target_name) {
+    script = "v8/tools/run.py"
+    depfile = "$target_gen_dir/$target_name.d"
+    sources = [ source_root ]
+    outputs = [ output ]
+    forward_variables_from(invoker, ["deps"])
+    args = [
+      "rustc",
+      rebase_path(source_root, root_build_dir),
+      "--crate-name=$target_name",
+      "--emit=dep-info,link",
+      "--crate-type=$crate_type",
+      "--cfg",
+      "feature=\"default\"",
+      "--cfg", 
+      "feature=\"use_std\"",
+      "--out-dir",
+      rebase_path(out_dir, root_build_dir),
+      "-L",
+      "dependency=" + rebase_path(depfile, root_build_dir),
+    ]
+    if (!defined(deps)) {
+      deps = []
+    }
+    #   --extern libc=$out/liblibc.rlib \
+    foreach (dep_label, deps) {
+      dep_name = get_label_info(dep_label, "name")
+      dep_dir = get_label_info(dep_label, "target_out_dir")
+      args += [
+        "--extern",
+        "$dep_name=" + rebase_path("$dep_dir/lib$dep_name.rlib"),
+      ]
+    }
+    if (defined(invoker.non_rust_deps)) {
+      deps += invoker.non_rust_deps
+      foreach (dep_label, deps) {
+        dep_dir = get_label_info(dep_label, "target_out_dir")
+        args += [
+          "-L",
+          rebase_path(dep_dir),
+        ]
+      }
+    }
+    if (is_debug) {
+      args += ["-C", "debuginfo=2"]
+    }
+  }
+}
+
+template("rust_library") {
+  rust_crate(target_name) {
+    crate_type = "lib"
+    forward_variables_from(invoker, "*")
+  }
+}
+
+template("rust_executable") {
+  rust_crate(target_name) {
+    crate_type = "bin"
+    forward_variables_from(invoker, "*")
+  }
+}

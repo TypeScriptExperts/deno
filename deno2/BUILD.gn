@@ -3,6 +3,20 @@ import("//v8/gni/v8.gni")
 import("//v8/snapshot_toolchain.gni")
 import("deno.gni")
 
+rust_executable("deno_rs") {
+  source_root = "main.rs"
+  deps = [
+    ":libc"
+  ]
+  non_rust_deps = [
+    ":libdeno",
+  ]
+}
+
+rust_library("libc") {
+  source_root = "third_party/rust_crates/libc/src/lib.rs"
+}
+
 executable("deno") {
   sources = [
     "main.cc",
