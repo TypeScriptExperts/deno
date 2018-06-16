@@ -9,10 +9,18 @@ rust_executable("deno_rs") {
     ":libc",
   ]
   non_rust_deps = [ ":libdeno" ]
+  extra_flags = [
+    "-L",
+    rebase_path(get_label_info(":libdeno", "target_out_dir"), root_build_dir),
+  ]
 }
 
 rust_library("libc") {
   source_root = "third_party/rust_crates/libc/src/lib.rs"
+  cfg = [
+    "feature=\"default\"",
+    "feature=\"use_std\"",
+  ]
 }
 
 executable("deno") {
@@ -104,7 +112,6 @@ run_node("bundle") {
     "js/main.ts",
     "js/msg.pb.d.ts",
     "js/msg.pb.js",
-    "js/package.json",  # `browserslist` field controls transform.
   ]
   outputs = [
     out_dir + "main.js",
