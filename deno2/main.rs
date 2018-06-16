@@ -1,7 +1,7 @@
 extern crate libc;
 use std::ffi::CStr;
 
-#[link(name = "deno")]
+#[link(name = "deno", kind = "static")]
 extern {
     fn deno_v8_version() -> *const libc::c_char;
     //fn deno_init();

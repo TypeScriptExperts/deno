@@ -59,33 +59,33 @@ template("create_snapshot") {
 }
 
 template("rust_crate") {
+  name = invoker.crate_name
   crate_type = invoker.crate_type
   source_root = invoker.source_root
-  if (crate_type == "bin") {
-    output = "$root_out_dir/$target_name"
-  } else if (crate_type == "lib") {
-    output = "$target_out_dir/$target_name.rlib"
-  } else {
-    assert(false, "Unsupported crate_type")
-  }
+  obj = "$target_out_dir/$name.o"
   action(target_name) {
     script = "v8/tools/run.py"
-    depfile = "$target_gen_dir/$target_name.d"
+    depfile = "$target_gen_dir/$name.d"
     sources = [
       source_root,
     ]
     outputs = [
-      output,
+      obj,
     ]
 
     args = [
       "rustc",
       rebase_path(source_root, root_build_dir),
-      "--crate-name=$target_name",
+      "--crate-name=$name",
       "--emit=dep-info=" + rebase_path(depfile, root_build_dir),
-      "--emit=link=" + rebase_path(output, root_build_dir),
+      "--emit=obj=" + rebase_path(obj, root_build_dir),
       "--crate-type=$crate_type",
     ]
+
+    if (crate_type != "bin") {
+      rlib = "$target_out_dir/$name.rlib"
+      args += [ "--emit=link=" + rebase_path(rlib, root_build_dir) ]
+    }
 
     if (defined(invoker.extra_flags)) {
       args += invoker.extra_flags
@@ -101,25 +101,22 @@ template("rust_crate") {
     }
 
     deps = []
-    if (defined(invoker.deps)) {
-      deps += invoker.deps
-    }
 
-    foreach(dep_label, deps) {
-      dep_name = get_label_info(dep_label, "name")
-      dep_dir = get_label_info(dep_label, "target_out_dir")
-      args += [
-        "--extern",
-        "$dep_name=" + rebase_path("$dep_dir/$dep_name.rlib"),
-      ]
-    }
-
-    if (defined(invoker.non_rust_deps)) {
-      deps += invoker.non_rust_deps
-      foreach(dep_label, deps) {
+    if (defined(invoker.rust_deps)) {
+      foreach(dep_label, invoker.rust_deps) {
+        dep_name = get_label_info(dep_label, "name")
         dep_dir = get_label_info(dep_label, "target_out_dir")
+        #dep_obj = "$dep_dir/$dep_name.o"
+        #outputs += [ dep_obj ]
+        dep_rlib = "$dep_dir/$dep_name.rlib"
+        deps += [ dep_label ]
+        args += [
+          "--extern",
+          "$dep_name=" + rebase_path(dep_rlib, root_build_dir),
+        ]
       }
     }
+
     if (is_debug) {
       args += [ "-g" ]
     }
@@ -131,14 +128,37 @@ template("rust_crate") {
 
 template("rust_library") {
   rust_crate(target_name) {
+    crate_name = target_name
     crate_type = "lib"
     forward_variables_from(invoker, "*")
   }
 }
 
 template("rust_executable") {
-  rust_crate(target_name) {
+  crate_name = target_name
+  crate_target = target_name + "_crate"
+  d = invoker.deps
+
+  rust_crate(crate_target) {
     crate_type = "bin"
+    forward_variables_from(invoker, ["source_root", "cfg", "rust_deps"])
     forward_variables_from(invoker, "*")
+  }
+
+  rust_objs = get_target_outputs(":" + crate_target)
+  if (defined(invoker.rust_deps)) {
+    foreach(dep_label, invoker.rust_deps) {
+      dep_name = get_label_info(dep_label, "name")
+      dep_dir = get_label_info(dep_label, "target_out_dir")
+      dep_obj = "$dep_dir/$dep_name.o"
+      rust_objs += [ dep_obj ]
+    }
+  }
+
+  executable(target_name) {
+    sources = rust_objs
+    deps = [
+      ":" + crate_target
+    ] + d
   }
 }

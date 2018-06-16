@@ -5,10 +5,10 @@ import("deno.gni")
 
 rust_executable("deno_rs") {
   source_root = "main.rs"
-  deps = [
+  rust_deps = [
     ":libc",
   ]
-  non_rust_deps = [ ":libdeno" ]
+  deps = [ ":libdeno" ]
   extra_flags = [
     "-L",
     rebase_path(get_label_info(":libdeno", "target_out_dir"), root_build_dir),
