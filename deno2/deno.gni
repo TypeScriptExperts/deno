@@ -124,6 +124,12 @@ template("rust_crate") {
         "debuginfo=2",
       ]
     }
+    if (is_official_build) {
+      args += [
+        "-C",
+        "opt-level=3"
+      ]
+    }
   }
 }
 
