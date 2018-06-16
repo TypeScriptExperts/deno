@@ -1,4 +1,3 @@
-
 template("run_node") {
   action(target_name) {
     forward_variables_from(invoker, "*")
@@ -74,9 +73,13 @@ template("rust_crate") {
   action(target_name) {
     script = "v8/tools/run.py"
     depfile = "$target_gen_dir/$target_name.d"
-    sources = [ source_root ]
-    outputs = [ output ]
-    forward_variables_from(invoker, ["deps"])
+    sources = [
+      source_root,
+    ]
+    outputs = [
+      output,
+    ]
+    forward_variables_from(invoker, [ "deps" ])
     args = [
       "rustc",
       rebase_path(source_root, root_build_dir),
@@ -85,7 +88,7 @@ template("rust_crate") {
       "--crate-type=$crate_type",
       "--cfg",
       "feature=\"default\"",
-      "--cfg", 
+      "--cfg",
       "feature=\"use_std\"",
       "--out-dir",
       rebase_path(out_dir, root_build_dir),
@@ -95,8 +98,9 @@ template("rust_crate") {
     if (!defined(deps)) {
       deps = []
     }
+
     #   --extern libc=$out/liblibc.rlib \
-    foreach (dep_label, deps) {
+    foreach(dep_label, deps) {
       dep_name = get_label_info(dep_label, "name")
       dep_dir = get_label_info(dep_label, "target_out_dir")
       args += [
@@ -106,7 +110,7 @@ template("rust_crate") {
     }
     if (defined(invoker.non_rust_deps)) {
       deps += invoker.non_rust_deps
-      foreach (dep_label, deps) {
+      foreach(dep_label, deps) {
         dep_dir = get_label_info(dep_label, "target_out_dir")
         args += [
           "-L",
@@ -115,7 +119,10 @@ template("rust_crate") {
       }
     }
     if (is_debug) {
-      args += ["-C", "debuginfo=2"]
+      args += [
+        "-C",
+        "debuginfo=2",
+      ]
     }
   }
 }
